@@ -1,0 +1,17 @@
+{
+  "commit": "344cb45b4db3b9f3c389f8033f9bfb2ec0447650",
+  "working_tree_changed": true,
+  "network": "offline transport fixtures; emulator Wi-Fi disabled",
+  "checks": {
+    "recommendations-grant": "passed",
+    "recommendations-revoke": "passed",
+    "provider-populated": "passed",
+    "provider-empty": "passed",
+    "provider-denied": "passed"
+  },
+  "apk_sha256": "d503be2c2b8d68ea0ef18a63a160692b4908f8bc6c11daadc1f6267dac1bf9d7",
+  "screenshots": [
+    "home.png",
+    "player.png"
+  ]
+}
