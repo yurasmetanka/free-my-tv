@@ -11,7 +11,7 @@ Open source. Built with Claude Code. One button to undo.
 
 [Install](#install) · [Any TV](#any-tv) · [Make it yours](#make-it-yours)
 
-<img src=".github/preview.webp" width="880" alt="The Free My TV home screen: a glass shelf of apps, trending picks, and a drawer with the weather and crypto prices">
+<img src=".github/preview.png" width="880" alt="The Free My TV home screen: a glass shelf of apps, recommendations, and a drawer with the weather forecast">
 
 </div>
 
@@ -20,11 +20,11 @@ Open source. Built with Claude Code. One button to undo.
 - **No ads.** No sponsored rows, banners or autoplaying promos. Not one.
 - **Your apps, front and center.** The streaming apps you actually use, on a glass shelf. Pick them and their order right on the TV.
 - **Your choice of picks.** On Android TV, choose **From your apps**, **Discover (TMDB)** or **Off** in Home Settings. From your apps shows a scrolling row of recommendations published by your shelf apps, with three visible cards and a larger selected card. Both sources use the same expanding card row. Discover supplies three hourly picks from trending and recent movies and shows on installed streaming services.
-- **Weather and markets, one press away.** The hour-by-hour forecast, sunrise and sunset, and live crypto prices.
+- **Weather, one press away.** The hour-by-hour forecast, sunrise and sunset.
 - **Light by day, dark by night.** It follows your city's real sunset, the way your phone does.
 - **A screensaver to match.** Full-screen photos of the picks with a big glass clock.
 - **Fast.** 60 fps, every frame in 16.6 ms, on the TV's own chip. The home screen uses 96 MB of memory instead of 242 MB (−60%).<br><sub>Measured on a 98″ TCL Google TV running Android 14.</sub>
-- **Set up on the TV.** Language, your city, temperature, theme, the weather and prices cards, which coins, and the apps on the shelf, in Free My TV's own settings.
+- **Set up on the TV.** Language, your city, temperature, theme, the weather widget, and the apps on the shelf, in Free My TV's own settings.
 - **Safe.** No root. Nothing is uninstalled. One button brings back the factory home screen.
 
 ## Install
@@ -80,8 +80,6 @@ The first values come from `config.properties`, created by the first build. Most
 | `latitude`, `longitude` | Your city, for the weather and the sunset | New York |
 | `city` | The name on the weather card | `Weather` |
 | `language` | `auto` (follows the TV), `en`, `es`, `pt`, `ru` or `de` | `auto` |
-| `show_crypto` | Show Binance crypto prices on home and screensaver | `true` |
-| `currency` | Crypto prices in `USD`, `EUR`, `BRL`… | `USD` |
 | `temperature` | `C`, `F` or `auto` | `auto` |
 | `disable_assistant` | Also turn off Google Assistant | `false` |
 
@@ -135,7 +133,6 @@ Free My TV runs on Google TV and Android TV: TCL, Sony, Hisense, Philips, Xiaomi
 It's your code, and Claude Code finds its way around it. Try:
 
 - *"Add Crunchyroll to the shelf."*
-- *"Show the prices in euros."*
 - *"Add Spanish."*
 - *"Switch to the night look an hour after sunset."*
 
@@ -145,7 +142,7 @@ It's your code, and Claude Code finds its way around it. Try:
 - **It uses the TV's own ADB, from inside the TV.** The app connects to `127.0.0.1:5555` with its own key (that's the *Allow USB debugging?* prompt) and runs the same commands you would: `cmd package set-home-activity`, `settings put secure screensaver_components`, `pm disable-user`. Nothing listens to the network.
 - **Drawn by hand on one Canvas**, with Android 13 shaders for the frosted glass and the sky (plain fills on Android 9 to 12, with lighter shadows and no GPU layers on 9 to 11 for their older GPUs).
 - **A safety net.** A watchdog in a separate process brings back the stock home screen after three crashes in five minutes, and a boot check keeps your choice after TV updates.
-- **Data** from TMDB (trending titles, new releases and which app streams what in your country), Open-Meteo (forecast, sunrise and sunset), and optionally Binance (24-hour prices when `show_crypto=true`).
+- **Data** from TMDB (trending titles, new releases and which app streams what in your country), Open-Meteo (forecast, sunrise and sunset).
 
 | File | What it is |
 |---|---|
@@ -155,7 +152,7 @@ It's your code, and Claude Code finds its way around it. Try:
 | [`Recs.java`](app/src/io/freemytv/Recs.java) | Recommendation source selection and shared cards |
 | [`NativeRecs.java`](app/src/io/freemytv/NativeRecs.java) | Shelf apps’ Android TV Preview and Watch Next feeds |
 | [`TmdbRecs.java`](app/src/io/freemytv/TmdbRecs.java) | Optional Discover (TMDB) feed |
-| [`HomeData.java`](app/src/io/freemytv/HomeData.java) | Weather and prices |
+| [`HomeData.java`](app/src/io/freemytv/HomeData.java) | Weather forecast |
 | [`HomeApps.java`](app/src/io/freemytv/HomeApps.java) | The shelf, inputs and All Apps |
 | [`DreamView.java`](app/src/io/freemytv/DreamView.java) | The screensaver |
 | [`SettingsActivity.java`](app/src/io/freemytv/SettingsActivity.java) | The settings screen (the app's icon) |
@@ -166,7 +163,7 @@ It's your code, and Claude Code finds its way around it. Try:
 
 ## Development
 
-For a repeatable emulator cycle with a mock streaming app, real TV-provider recommendations, artwork, and offline weather/prices, see [dev/README.md](dev/README.md).
+For a repeatable emulator cycle with a mock streaming app, real TV-provider recommendations, artwork, and offline weather, see [dev/README.md](dev/README.md).
 
 Requires JDK 17+, Android SDK Build-Tools 34.0.0 and platform android-34. Set `ANDROID_HOME` to your SDK and `JAVA_HOME` to your JDK, then run:
 
@@ -188,14 +185,14 @@ Keep `config.properties` and `freemytv.keystore` local. The build recreates `out
 
 ## Privacy
 
-No accounts, no analytics, no tracking. The app talks to TMDB, Open-Meteo (with the coordinates you set), and Binance only when `show_crypto=true`. Your settings stay on your computer and your TV.
+No accounts, no analytics, no tracking. The app talks to TMDB and Open-Meteo (with the coordinates you set). Your settings stay on your computer and your TV.
 
 ## Credits
 
 - Built with [Claude Code](https://claude.com/claude-code).
 - This product uses the TMDB API but is not endorsed or certified by [TMDB](https://www.themoviedb.org/).
-- Weather data by [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0). Prices from the [Binance](https://www.binance.com/) public API.
-- Icons: [Material Symbols](https://fonts.google.com/icons) (Apache 2.0). Font: [Inter](https://rsms.me/inter/) (SIL OFL 1.1). Coin logos: [cryptocurrency-icons](https://github.com/spothq/cryptocurrency-icons) (CC0).
+- Weather data by [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0).
+- Icons: [Material Symbols](https://fonts.google.com/icons) (Apache 2.0). Font: [Inter](https://rsms.me/inter/) (SIL OFL 1.1).
 - Not affiliated with Google, TCL or any streaming service. App names and logos belong to their owners.
 
 ## License

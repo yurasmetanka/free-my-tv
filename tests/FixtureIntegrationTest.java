@@ -6,7 +6,7 @@ import android.graphics.BitmapFactory;
 import android.os.*;
 import java.util.*;
 
-/** Emulator-only provider + artwork + weather/price integration, also a live offline UI dev session. */
+/** Emulator-only provider + artwork + weather integration, also a live offline UI dev session. */
 public final class FixtureIntegrationTest extends Instrumentation {
     private Bundle args;
     private volatile boolean finishRequested;
@@ -24,8 +24,8 @@ public final class FixtureIntegrationTest extends Instrumentation {
             OfflineNetwork.install();
             String scenario = args.getString("scenario", "populated");
             c.getSharedPreferences("settings", Context.MODE_PRIVATE).edit().putString("recommendations", "apps")
-                    .putString("shelf", "io.freemytv.fixture").putBoolean("quotes", true)
-                    .putBoolean("coin0", true).putBoolean("coin1", true).putBoolean("coin2", true).putBoolean("weather", true)
+                    .putString("shelf", "io.freemytv.fixture")
+                    .putBoolean("weather", true)
                     .putString("city", "Fixture City").putString("theme", "light").commit();
             NativeRecs nativeRecs = NativeRecs.get(c);
             HomeData data = HomeData.get(c);
@@ -35,15 +35,14 @@ public final class FixtureIntegrationTest extends Instrumentation {
             int expected = scenario.equals("populated") ? 7 : 0;
             do {
                 if (nativeRecs.now().size() == expected && NativeRecs.status(c).optLong("at") >= refreshStarted
-                        && data.weatherAt > 0 && data.pricesAt > 0) break;
+                        && data.weatherAt > 0) break;
                 SystemClock.sleep(200);
             } while (SystemClock.elapsedRealtime() < deadline);
             check(nativeRecs.now().size() == expected, "expected " + expected + " provider picks, got " + nativeRecs.now().size() + ": " + NativeRecs.status(c));
             check(NativeRecs.status(c).optLong("at") >= refreshStarted, "provider refresh completed in this run");
             check(NativeRecs.status(c).optString("error").isEmpty(), "provider queries completed without errors");
             check(data.weather.temp == 23 && data.weather.hours.size() == 6, "mock forecast parsed");
-            check(data.prices[0] == 65000 && data.changes[0] > 0, "mock prices parsed");
-            check(OfflineNetwork.weatherRequests.get() > 0 && OfflineNetwork.priceRequests.get() > 0, "weather and price requests used offline transport");
+            check(OfflineNetwork.weatherRequests.get() > 0, "weather requests used offline transport");
             if (expected > 0) {
                 try (android.database.Cursor rows = c.getContentResolver().query(android.media.tv.TvContract.PreviewPrograms.CONTENT_URI,
                         new String[] {"package_name"}, null, null, null)) {
@@ -83,12 +82,13 @@ public final class FixtureIntegrationTest extends Instrumentation {
             if (Build.VERSION.SDK_INT >= 33) c.registerReceiver(stop, filter, Context.RECEIVER_EXPORTED);
             else c.registerReceiver(stop, filter);
             startActivitySync(new Intent(c, HomeActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-            Bundle ready = new Bundle(); ready.putString("stream", "FIXTURE_READY " + scenario + " picks=" + expected + " weather=23 prices=65000\n");
+            Bundle ready = new Bundle(); ready.putString("stream", "FIXTURE_READY " + scenario + " picks=" + expected + " weather=23\n");
             sendStatus(1, ready);
             long hold = Long.parseLong(args.getString("hold_ms", "0"));
             deadline = SystemClock.elapsedRealtime() + hold;
             while (!finishRequested && SystemClock.elapsedRealtime() < deadline) SystemClock.sleep(200);
-            result.putString("stream", "Fixture provider, artwork, weather and prices checks passed: " + scenario + "\n");
+            check(OfflineNetwork.unexpectedRequests.get() == 0, "no unexpected network requests");
+            result.putString("stream", "Fixture provider, artwork, weather checks passed: " + scenario + "\n");
             code = -1;
         } catch (Throwable e) { result.putString("stream", "FAILED: " + e + "\n"); android.util.Log.e("FixtureIntegration", "failed", e); }
         finally { try { c.unregisterReceiver(stop); } catch (RuntimeException ignored) {} }

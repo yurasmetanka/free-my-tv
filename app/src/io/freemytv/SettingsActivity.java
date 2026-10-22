@@ -635,12 +635,8 @@ public class SettingsActivity extends Activity {
         // MARK: - Home Settings and Remote Buttons
 
         private static final String[] LANGUAGES = {"auto", "pt", "en", "es", "de", "ru"}, UNITS = {"auto", "C", "F"}, THEMES = {"auto", "light", "dark"};
-        /** Home Settings, followed by one row per coin. */
-        private static final int CITY_ROW = 4, RECS_ROW = 6, COIN_ROWS = 7;
-
-        private boolean dollar() {
-            return "BRL".equalsIgnoreCase(Config.CURRENCY.trim());
-        }
+        /** Home Settings. */
+        private static final int CITY_ROW = 4, RECS_ROW = 5;
 
         private String[] settingLabels() {
             List<String> l = new ArrayList<>();
@@ -649,12 +645,7 @@ public class SettingsActivity extends Activity {
             l.add(Ui.tr("Tema", "Theme"));
             l.add(Ui.tr("Widget do clima", "Weather widget"));
             l.add(Ui.tr("Cidade", "City"));
-            l.add(Ui.tr("Widget de cotações", "Quotes widget"));
             l.add(Ui.tr("Recomendações", "Recommendations"));
-            l.add("Bitcoin");
-            l.add("Ethereum");
-            l.add("Solana");
-            if (dollar()) l.add(Ui.tr("Dólar", "Dollar"));
             return l.toArray(new String[0]);
         }
 
@@ -670,12 +661,9 @@ public class SettingsActivity extends Activity {
             v[2] = theme.equals("light") ? Ui.tr("Claro", "Light") : theme.equals("dark") ? Ui.tr("Escuro", "Dark") : Ui.tr("Automático", "Automatic");
             v[3] = onOff(Prefs.weather());
             v[CITY_ROW] = !cityStatus.isEmpty() ? cityStatus : Prefs.city().isEmpty() ? "—" : Prefs.city();
-            v[5] = onOff(Prefs.quotes());
             String source = Prefs.recommendations();
             v[RECS_ROW] = source.equals("off") ? Ui.tr("Desligado", "Off") : source.equals("apps")
                     ? Ui.tr("Dos seus apps", "From your apps") : Ui.tr("Descobrir (TMDB)", "Discover (TMDB)");
-            // No quotes widget, nowhere to show prices: the coins read as off (and stay locked) until it is back on.
-            for (int i = COIN_ROWS; i < v.length; i++) v[i] = onOff(Prefs.quotes() && Prefs.coin(i - COIN_ROWS));
             return v;
         }
 
@@ -747,7 +735,6 @@ public class SettingsActivity extends Activity {
                 }
                 case 3: Prefs.setWeather(!Prefs.weather()); break;
                 case CITY_ROW: return;
-                case 5: Prefs.setQuotes(!Prefs.quotes()); break;
                 case RECS_ROW: {
                     String[] sources = {"apps", "tmdb", "off"};
                     int at = java.util.Arrays.asList(sources).indexOf(Prefs.recommendations());
@@ -758,10 +745,7 @@ public class SettingsActivity extends Activity {
                     Recs.get(getContext()).refreshIfStale();
                     break;
                 }
-                default:
-                    if (!Prefs.quotes()) return;
-                    Prefs.setCoin(focus - COIN_ROWS, !Prefs.coin(focus - COIN_ROWS));
-                    break;
+                default: return;
             }
             HomeData.get(getContext()).settingsChanged();
         }
@@ -955,9 +939,7 @@ public class SettingsActivity extends Activity {
                 rowRect.set(LIST_X * k, y, LIST_R * k, y + LIST_ROW_H * k);
                 float f = drawRowBackground(c, i);
                 rowLabel.setColor(blend(0xF2FFFFFF, INK, f));
-                boolean locked = !keys && i >= COIN_ROWS && !Prefs.quotes();
-                rowValue.setColor(blend(locked ? 0x59FFFFFF : 0xB3FFFFFF, locked ? 0x591C1C1E : 0xB31C1C1E, f));
-                if (locked) rowLabel.setColor(blend(0x73FFFFFF, 0x731C1C1E, f));
+                rowValue.setColor(blend(0xB3FFFFFF, 0xB31C1C1E, f));
                 float base = rowRect.centerY() + Ui.halfCap(rowLabel);
                 c.drawText(labels[i], rowRect.left + 30 * k, base, rowLabel);
                 c.drawText(values[i], rowRect.right - 30 * k, base, rowValue);

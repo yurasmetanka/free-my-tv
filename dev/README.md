@@ -27,8 +27,8 @@ AVDs, screenshots and per-run logs live in ignored `.local/dev/`, outside `out/`
 
 - **Real:** separately installed, launchable `io.freemytv.fixture` (Fixture Cinema) and `io.freemytv.fixture.extra` (Fixture Extra) apps, Android TV Preview Programs and Watch Next provider, package ownership, ContentResolver queries, media types, content intents, cross-app artwork URIs, launcher filtering, artwork download/cache and the home activity.
 - **Generated fixtures:** six previews per app (movies, shows, a clip and deliberately missing artwork), one Continue Watching entry per app, and locally drawn PNG artwork. The mock player displays the received content link. Reseeding replaces only the fixture app's rows; it does not accumulate duplicates or touch other publishers.
-- **Offline network:** test instrumentation installs a process-local HTTPS URL handler before launching the home screen. Open-Meteo and Binance requests receive known forecast/price JSON through `HttpURLConnection`; the production parsers and UI still run. Other HTTPS requests fail explicitly. TLS verification is not disabled and nothing is added to the release app, manifest, or build config. This is an application transport mock, not proof of DNS, TLS or real API compatibility. The fixture app itself needs no internet permission.
-- **Checks:** existing recommendation tests with permission granted/denied; real provider feeds with populated, empty and permission-denied scenarios; exact category counts; exclusion of the second publisher outside the selected shelf; resolvable content link; actual artwork decoding/cache; forecast and price values; confirmed request execution; landscape home/player screenshots; actual mock-player launch. Host commands check instrumentation result codes and fail on runner failures, including when `am instrument` exits zero.
+- **Offline network:** test instrumentation installs a process-local HTTPS URL handler before launching the home screen. Open-Meteo requests receive known forecast JSON through `HttpURLConnection`; the production parsers and UI still run. Other HTTPS requests fail explicitly. TLS verification is not disabled and nothing is added to the release app, manifest, or build config. This is an application transport mock, not proof of DNS, TLS or real API compatibility. The fixture app itself needs no internet permission.
+- **Checks:** existing recommendation tests with permission granted/denied; real provider feeds with populated, empty and permission-denied scenarios; exact category counts; exclusion of the second publisher outside the selected shelf; resolvable content link; actual artwork decoding/cache; forecast values; confirmed request execution; landscape home/player screenshots; actual mock-player launch. Host commands check instrumentation result codes and fail on runner failures, including when `am instrument` exits zero.
 
 The offline test/session commands disable emulator Wi-Fi, so a passing run cannot depend on a public API.
 
@@ -42,7 +42,7 @@ After a successful `dev/test.sh`, run:
 bash dev/session.sh
 ```
 
-Wait for `FIXTURE_READY populated picks=7 weather=23 prices=65000`. The process holds instrumentation open so the offline transport stays installed while you inspect the real launcher, navigate its tabs, or capture images. It ends after 24 hours or Ctrl+C. Use a second terminal:
+Wait for `FIXTURE_READY populated picks=7 weather=23`. The process holds instrumentation open so the offline transport stays installed while you inspect the real launcher, navigate its tabs, or capture images. It ends after 24 hours or Ctrl+C. Use a second terminal:
 
 ```sh
 adb -s emulator-5556 shell input keyevent KEYCODE_DPAD_UP
@@ -60,7 +60,7 @@ When instrumentation ends its process is stopped, and the mock transport is gone
 
 ## Real-network/device testing
 
-Do not require public internet for the offline development cycle. The cloud host's proxy/allowlist is separate from Android guest networking: emulator Wi-Fi connectivity does not establish API access. Real weather, Binance and TMDB checks need their destinations allowed and a supported proxy/CA route inside Android; do not disable TLS validation or bypass the environment's proxy. Those live API checks are not claimed by this suite.
+Do not require public internet for the offline development cycle. The cloud host's proxy/allowlist is separate from Android guest networking: emulator Wi-Fi connectivity does not establish API access. Real weather and TMDB checks need their destinations allowed and a supported proxy/CA route inside Android; do not disable TLS validation or bypass the environment's proxy. Those live API checks are not claimed by this suite.
 
 Physical TVs remain necessary for performance, firmware permissions, remote buttons, manufacturer launcher switching, real service publication/deep links, and actual video playback. The fixture player does not decode video.
 

@@ -81,7 +81,7 @@ final class Backdrop {
                 new int[] {black(0.38f), black(0.3f), black(0.18f), black(0.05f), 0},
                 new float[] {0, 0.25f, 0.55f, 0.8f, 1}, Shader.TileMode.CLAMP));
         c.drawRect(0, H * 0.4f, W, H, scrim);
-        // Behind the prices (above the shelf, on the right), a localized scrim for the small text.
+        // Above the shelf, on the right, a localized scrim for the small text.
         scrim.setShader(new android.graphics.RadialGradient(W * 0.8f, H * 0.65f, W * 0.24f,
                 new int[] {black(0.42f), black(0.18f), 0}, new float[] {0, 0.55f, 1}, Shader.TileMode.CLAMP));
         c.save();

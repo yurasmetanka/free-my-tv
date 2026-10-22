@@ -28,8 +28,6 @@ final class German {
             case "No weather data right now.": return "Gerade keine Wetterdaten.";
             case "Sunrise ": return "Sonnenaufgang ";
             case "Sunset ": return "Sonnenuntergang ";
-            case "Crypto": return "Krypto";
-            case "24h change": return "Änderung in 24 h";
             case "For You": return "Für dich";
             case "Couldn't open ": return "Konnte nicht öffnen: ";
             case " of ": return " von ";
@@ -38,9 +36,7 @@ final class German {
             case ", position ": return ", Position ";
             case ", tab ": return ", Tab ";
             case " of 3": return " von 3";
-            case "Dollar": return "Dollar";
             case "Series": return "Serie";
-            case "prices from ": return "Kurse von ";
             case "Starting…": return "Wird gestartet…";
             case "Original": return "Original";
             case "Home Screen, ": return "Startbildschirm, ";
@@ -119,7 +115,6 @@ final class German {
             case "Cancel": return "Abbrechen";
             case "No city with that name.": return "Keine Stadt mit diesem Namen.";
             case "Couldn't search now: ": return "Suche gerade nicht möglich: ";
-            case "Quotes widget": return "Kurs-Widget";
             case "On": return "An";
             case "Off": return "Aus";
             case "Shelf": return "Leiste";

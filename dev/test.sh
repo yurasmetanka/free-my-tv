@@ -74,4 +74,4 @@ report={'commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).s
         'screenshots':['home.png','player.png']}
 (root/'summary.json').write_text(json.dumps(report,indent=2)+'\n')
 PYREPORT
-printf 'Passed: source checks (granted/denied), real provider (populated/empty/denied), artwork, offline weather and prices.\nLogs: %s\n' "$RESULTS"
+printf 'Passed: source checks (granted/denied), real provider (populated/empty/denied), artwork, offline weather.\nLogs: %s\n' "$RESULTS"

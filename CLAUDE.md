@@ -16,7 +16,7 @@ before you do it, and let them do the taps on the TV.
    - Linux: OpenJDK 17, Android's command-line tools and adb from the package manager, then the same `sdkmanager` line.
    - Windows: WSL, then as on Linux.
 3. **Settings:** run `./build.sh` once; it creates `config.properties`. Fill in `latitude` and `longitude` (decimal
-   degrees) and `city` for their city, `tmdb_region` (two-letter country), `show_crypto`, `currency` and `temperature` to match.
+   degrees) and `city` for their city, `tmdb_region` (two-letter country), and `temperature` to match.
 4. **Android TV recommendations:** *Home Settings* → *Recommendations* chooses *From your apps* (the default),
    *Discover (TMDB)* or *Off*. App feeds read Android TV Preview Programs and Watch Next from shelf apps only;
    allow TV-listing access when prompted. App-feed tabs are Explore, Movies, Shows and Continue Watching;
@@ -112,7 +112,7 @@ For TVs without Google TV or Android TV, use a Google TV streamer on HDMI.
 
 ## Development infrastructure
 
-See `dev/README.md` for the dedicated Android TV emulator, real fixture publisher apps, offline weather/price transport, screenshots and CI. `bash dev/test.sh` builds and runs the suite; `bash dev/session.sh` keeps a populated offline launcher open for UI work. These commands must only target a disposable emulator. Mocks live in the test APK, never the release app. Do not install fixture apps on a user’s physical TV.
+See `dev/README.md` for the dedicated Android TV emulator, real fixture publisher apps, offline weather transport, screenshots and CI. `bash dev/test.sh` builds and runs the suite; `bash dev/session.sh` keeps a populated offline launcher open for UI work. These commands must only target a disposable emulator. Mocks live in the test APK, never the release app. Do not install fixture apps on a user’s physical TV.
 
 ## Always
 

@@ -35,8 +35,6 @@ final class Russian {
             case "No weather data right now.": return "Сейчас нет данных о погоде.";
             case "Sunrise ": return "Восход ";
             case "Sunset ": return "Закат ";
-            case "Crypto": return "Криптовалюты";
-            case "24h change": return "изменение за 24 ч";
             case "For You": return "Для вас";
             case "← → to move · OK to drop · Back to cancel": return "← → — переместить · OK — оставить · Назад — отмена";
             case "Moving ": return "Перемещение: ";
@@ -45,9 +43,7 @@ final class Russian {
             case " of ": return " из ";
             case ", tab ": return ", вкладка ";
             case " of 3": return " из 3";
-            case "Dollar": return "Доллар";
             case "Series": return "Сериал";
-            case "prices from ": return "котировки за ";
             case "Starting…": return "Запуск…";
             case "Original": return "Заводской";
             case "Home Screen, ": return "Главный экран, ";
@@ -118,7 +114,6 @@ final class Russian {
             case "Cancel": return "Отмена";
             case "No city with that name.": return "Город с таким названием не найден.";
             case "Couldn't search now: ": return "Не удалось выполнить поиск: ";
-            case "Quotes widget": return "Виджет котировок";
             case "On": return "Вкл.";
             case "Off": return "Выкл.";
             case "Shelf": return "Избранные приложения";
