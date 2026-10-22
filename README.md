@@ -166,6 +166,8 @@ It's your code, and Claude Code finds its way around it. Try:
 
 ## Development
 
+For a repeatable emulator cycle with a mock streaming app, real TV-provider recommendations, artwork, and offline weather/prices, see [dev/README.md](dev/README.md).
+
 Requires JDK 17+, Android SDK Build-Tools 34.0.0 and platform android-34. Set `ANDROID_HOME` to your SDK and `JAVA_HOME` to your JDK, then run:
 
 ```sh
@@ -178,6 +180,7 @@ The app and instrumentation APK build without Gradle or third-party libraries. R
 
 - `app/`: Android manifest, Java sources, resources and bundled assets.
 - `tests/`: recommendation instrumentation checks and their build script.
+- `dev/`: emulator lifecycle, fixture publisher and offline integration workflow.
 - `tools/`: optional Android artwork and symbol generators (require Pillow).
 - `out/`: ignored generated code, classes and intermediate APKs.
 

@@ -1,0 +1,49 @@
+name: Android TV checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  emulator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      # GitHub's Ubuntu image supplies the Android SDK and sdkmanager.
+      - name: Install pinned build dependencies
+        run: sdkmanager 'build-tools;34.0.0' 'platforms;android-34' 'platform-tools'
+      - name: Prepare TV emulator
+        run: bash dev/emulator.sh setup
+      - name: Build and run offline integration suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          trap 'bash dev/emulator.sh stop || true' EXIT
+          bash dev/emulator.sh start > .local/dev/emulator.log 2>&1 &
+          bash dev/test.sh
+      - name: Upload APKs, test results and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-tv-smoke
+          include-hidden-files: true
+          path: |
+            FreeMyTV.apk
+            out/tests/checks.apk
+            out/fixture/*.apk
+            .local/dev/results/
+            .local/dev/emulator.log

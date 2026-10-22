@@ -2,4 +2,6 @@
     <application android:label="Free My TV tests" />
     <instrumentation android:name="io.freemytv.RecommendationsTest" android:targetPackage="io.freemytv"
         android:targetProcesses="io.freemytv:home" />
+    <instrumentation android:name="io.freemytv.FixtureIntegrationTest" android:targetPackage="io.freemytv"
+        android:targetProcesses="io.freemytv:home" />
 </manifest>

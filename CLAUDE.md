@@ -110,6 +110,10 @@ For TVs without Google TV or Android TV, use a Google TV streamer on HDMI.
   `TmdbRecs`. Build instrumentation checks with `bash tests/build.sh` after building the app; see `tests/README.md`
   for device execution and permission scenarios. Do not describe a compiled test APK as executed tests.
 
+## Development infrastructure
+
+See `dev/README.md` for the dedicated Android TV emulator, real fixture publisher apps, offline weather/price transport, screenshots and CI. `bash dev/test.sh` builds and runs the suite; `bash dev/session.sh` keeps a populated offline launcher open for UI work. These commands must only target a disposable emulator. Mocks live in the test APK, never the release app. Do not install fixture apps on a user’s physical TV.
+
 ## Always
 
 - Never turn off an app that saved a Wi-Fi network: Android deletes its networks and Original can't bring them

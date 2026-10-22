@@ -1,0 +1,22 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="io.freemytv.fixture">
+    <uses-permission android:name="com.android.providers.tv.permission.WRITE_EPG_DATA" />
+    <uses-feature android:name="android.software.leanback" android:required="true" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <application android:label="Fixture Cinema" android:icon="@android:drawable/ic_media_play" android:theme="@android:style/Theme.Material.NoActionBar">
+        <activity android:name="io.freemytv.fixture.Player" android:exported="true" android:screenOrientation="landscape">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="fixture" android:host="cinema" />
+            </intent-filter>
+        </activity>
+        <activity android:name="io.freemytv.fixture.Seed" android:exported="true" />
+        <provider android:name="io.freemytv.fixture.Artwork" android:authorities="io.freemytv.fixture.art" android:exported="true" />
+    </application>
+</manifest>
