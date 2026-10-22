@@ -14,4 +14,4 @@ The checks cover the key-independent default, source persistence, Off, shelf rem
 
 Run with TV-listing permission granted to exercise the filters, and with it denied to check that cached app recommendations are hidden. Restore the original permission afterward. Reopen the home screen when finished. The test APK can be removed with `adb uninstall io.freemytv.tests`.
 
-Also check on the TV: switching sources and restarting, all three tabs, scrolling to both ends, selected-card expansion, empty feeds, artwork and app-logo placeholders, content links, and the screensaver. LG/webOS and Samsung/Tizen stay unchanged.
+Also check on the TV: switching sources and restarting, all four app-feed tabs and all three Discover tabs, scrolling to both ends, selected-card expansion, empty feeds, artwork and app-logo placeholders, content links, and the screensaver.
