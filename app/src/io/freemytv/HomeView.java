@@ -144,6 +144,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
 
     // At the top: source-specific tabs, then the three icon-only buttons
     private int tab, topIndex, cardIndex, cardStart;
+    private long cardRotationHour = Long.MIN_VALUE;
     private boolean resetCards;
     private final Spring cardScroll = new Spring(0.32f, 1f, 0);
     private int widgetIndex;    // with TalkBack on, the drawer's weather card can take the focus
@@ -448,7 +449,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         data.addListener(this);
         recs.addListener(this);
         data.refreshIfStale();
-        recs.refreshIfStale();
+        if (!again) recs.refreshOnReturn(); else recs.refreshIfStale();
         Photos.importInbox(getContext(), ownReady);   // photos a computer just sent
         if (tvInputs != null) tvInputs.registerCallback(inputCallback, handler);
         handler.postDelayed(tick, 15_000);
@@ -2910,7 +2911,15 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     }
 
     private void updateCards() {
-        List<Recs.Pick> list = recs.now((appRecs ? APP_TAB_KIND : TAB_KIND)[tab]);
+        String kind = (appRecs ? APP_TAB_KIND : TAB_KIND)[tab];
+        long hour = Math.floorDiv(System.currentTimeMillis(), 3600_000L);
+        if (appRecs && !"continue".equals(kind) && cardRotationHour != hour && zone != Z_CARDS) {
+            resetCards = true;
+            cardRotationHour = hour;
+        }
+        // Freeze the rotation slot during card navigation; apply the new hour once browsing ends.
+        List<Recs.Pick> list = recs.now(kind, cardRotationHour == Long.MIN_VALUE
+                ? System.currentTimeMillis() : cardRotationHour * 3600_000L);
         boolean changed = resetCards || !samePicks(list, cards);
         String selected = !resetCards && cardIndex < cards.size() ? Recs.key(cards.get(cardIndex)) : null;
         if (changed) {

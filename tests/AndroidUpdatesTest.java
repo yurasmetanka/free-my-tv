@@ -150,6 +150,21 @@ public final class AndroidUpdatesTest extends Instrumentation {
     }
 
     private static void checkContinueWatching(Context c) throws Exception {
+        List<Recs.Pick> original = new ArrayList<>();
+        for (int i = 0; i < 8; i++) { Recs.Pick item = new Recs.Pick(); item.id = i; original.add(item); }
+        List<Recs.Pick> rotated = new ArrayList<>(original);
+        NativeRecs.rotateRecommendations(rotated, null, 3600_000L);
+        check(rotated.size() == 8 && rotated.get(0) == original.get(3)
+                && new java.util.HashSet<>(rotated).size() == 8, "hourly rotation retains every card and advances a page");
+        List<Recs.Pick> sameHour = new ArrayList<>(original);
+        NativeRecs.rotateRecommendations(sameHour, "movie", 3600_000L + 59999);
+        check(sameHour.equals(rotated), "feed rereads do not shuffle within the hour");
+        NativeRecs.rotateRecommendations(original, "continue", 3600_000L);
+        check(original.get(0).id == 0 && original.get(7).id == 7, "Continue Watching order never rotates");
+        List<Recs.Pick> shortRow = new ArrayList<>(original.subList(0, 3));
+        NativeRecs.rotateRecommendations(shortRow, "tv", 3600_000L);
+        check(shortRow.get(0).id == 1, "three-card rows also rotate");
+        NativeRecs.rotateRecommendations(new ArrayList<>(), null, 3600_000L);
         Recs.Pick p = new Recs.Pick();
         p.resume = true; p.pkg = "test.watch"; p.title = "A series"; p.app = "Player";
         p.duration = 90 * 60_000L; p.position = 30 * 60_000L;

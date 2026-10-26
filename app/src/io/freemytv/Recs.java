@@ -73,7 +73,10 @@ final class Recs {
 
     List<Pick> now() { return now(null); }
     List<Pick> now(String kind) {
-        return !enabled() ? new ArrayList<>() : fromApps() ? apps().now(kind) : tmdb().now(kind);
+        return now(kind, System.currentTimeMillis());
+    }
+    List<Pick> now(String kind, long at) {
+        return !enabled() ? new ArrayList<>() : fromApps() ? apps().now(kind, at) : tmdb().now(kind);
     }
     boolean hasPicks() { return enabled() && fromApps() && apps != null && apps.hasPicks(); }
     List<Pick> wanted() {
@@ -92,6 +95,10 @@ final class Recs {
         if (fromApps()) apps().refreshIfStale(); else tmdb().refreshIfStale();
     }
     void dismiss(Pick p) { if (p != null && p.resume) apps().dismiss(p); }
+    void refreshOnReturn() {
+        if (!enabled()) return;
+        if (fromApps()) apps().invalidate(); else tmdb().refreshIfStale();
+    }
     void invalidate() { if (fromApps()) apps().invalidate(); }
     void prefetchAll() {
         if (!enabled()) return;

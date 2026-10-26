@@ -129,6 +129,18 @@ public final class RecommendationsTest extends Instrumentation {
             nativeRecs.showcase();
             nativeRecs.refreshIfStale();
         }
+        // The worker is paused: prove a return home bypasses a fresh cache without racing provider reads.
+        for (String name : new String[] {"dirty", "fetching", "fetchedAt", "shelfStamp", "languageStamp"}) {
+            Field f = NativeRecs.class.getDeclaredField(name); f.setAccessible(true);
+            if (name.equals("dirty") || name.equals("fetching")) f.setBoolean(nativeRecs, false);
+            else if (name.equals("fetchedAt")) f.setLong(nativeRecs, System.currentTimeMillis());
+            else f.set(nativeRecs, name.equals("shelfStamp") ? Prefs.shelf().toString() + Recs.canRead(c) : Ui.language);
+        }
+        Field fetching = NativeRecs.class.getDeclaredField("fetching"); fetching.setAccessible(true);
+        nativeRecs.refreshIfStale();
+        check(!fetching.getBoolean(nativeRecs), "ordinary tick reuses a fresh feed");
+        recs.refreshOnReturn();
+        check(fetching.getBoolean(nativeRecs), "return home forces a fresh provider read");
         prefs.edit().remove("shelf").commit();
         check(nativeRecs.now().isEmpty() && nativeRecs.wanted().isEmpty() && nativeRecs.showcase().isEmpty(),
                 "reset to default does not reuse custom eligibility");

@@ -148,6 +148,10 @@ final class NativeRecs {
     List<Pick> now() { return now(null); }
 
     List<Pick> now(String kind) {
+        return now(kind, System.currentTimeMillis());
+    }
+
+    List<Pick> now(String kind, long at) {
         List<Pick> out = new ArrayList<>();
         if (!canRead(context)) return out;
         Set<String> shelf = shelfPackages();
@@ -158,7 +162,18 @@ final class NativeRecs {
                 out.add(p);
             }
         }
+        rotateRecommendations(out, kind, at);
         return out;
+    }
+
+    /** Move a page forward each hour, retaining the full row and Watch Next's published order. */
+    static void rotateRecommendations(List<Pick> list, String kind, long now) {
+        if ("continue".equals(kind) || list.size() < 2) return;
+        long hour = Math.floorDiv(now, 3600_000L);
+        // Reduce before multiplying so even extreme clock values cannot overflow.
+        int step = list.size() > 3 ? 3 : 1;
+        int offset = (int) ((Math.floorMod(hour, (long) list.size()) * step) % list.size());
+        Collections.rotate(list, -offset);
     }
 
     // Match the PR's app/title identity so publisher row IDs changing cannot resurrect a dismissal.
