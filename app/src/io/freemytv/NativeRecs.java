@@ -479,11 +479,25 @@ final class NativeRecs {
         }
     }
 
+    /** KinoWatch still publishes the retired image host; the same paths are served by its media host. */
+    static String artworkFallback(String pkg, String artwork) {
+        if (!"watch.kino".equals(pkg) || artwork == null) return null;
+        Uri uri = Uri.parse(artwork);
+        if (!"https".equals(uri.getScheme()) || !"m.srvkp.com".equals(uri.getHost())
+                || uri.getUserInfo() != null || (uri.getPort() != -1 && uri.getPort() != 443)) return null;
+        return uri.buildUpon().authority("media.srvkp.com").build().toString();
+    }
+
+    private Bitmap tryArtwork(Pick p, String url, File file) {
+        Bitmap bitmap = tryArtwork(url, file);
+        return bitmap != null ? bitmap : tryArtwork(artworkFallback(p.pkg, url), file);
+    }
+
     private void loadImage(Pick p) {
         File file = imageFile(p);
         try {
-            Bitmap bitmap = tryArtwork(p.backdrop, file);
-            if (bitmap == null && p.thumbnail != null && !p.thumbnail.equals(p.backdrop)) bitmap = tryArtwork(p.thumbnail, file);
+            Bitmap bitmap = tryArtwork(p, p.backdrop, file);
+            if (bitmap == null && p.thumbnail != null && !p.thumbnail.equals(p.backdrop)) bitmap = tryArtwork(p, p.thumbnail, file);
             if (bitmap == null) throw new IOException("artwork unavailable");
             boolean forLight = light;
             Backdrop b = Backdrop.make(bitmap, forLight);

@@ -26,3 +26,5 @@ Adapted Android changes from `simbasjungles/free-my-tv`, shared base `62e883b` t
 Run `./build.sh`, `bash tests/build.sh`, `python3 tools/translate.py --check`, and `git diff --check`. Build the fixture publisher with `bash dev/build-fixture.sh`.
 
 `AndroidUpdatesTest` exercises the port's integration with injected cards on a dedicated emulator, including real personal-photo decoding/import and alarm scheduling/cancellation. `RecommendationsTest` retains the original native-feed regressions. Full provider scenarios use `bash dev/test.sh` on an Android TV emulator; a phone image cannot validate TV-provider behavior. Firmware-specific launcher switching, HDMI, actual media-session playback, and older Android versions require device testing. No physical TV was changed in this port.
+
+KinoWatch publisher artwork: if HTTPS artwork from `m.srvkp.com` fails, retry the identical path/query on `media.srvkp.com` for `watch.kino` only. This keeps publisher art and the normal cache; no TMDB lookup is involved. Other apps and hosts keep their existing image path. Verified six real image URLs on Philips Android 11 before implementation.
