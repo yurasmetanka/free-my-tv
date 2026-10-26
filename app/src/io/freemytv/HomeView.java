@@ -351,6 +351,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         @Override public void onInputStateChanged(String inputId, int state) { reloadSoon(); }
         @Override public void onInputAdded(String inputId) { reloadSoon(); }
         @Override public void onInputRemoved(String inputId) { reloadSoon(); }
+        @Override public void onInputUpdated(String inputId) { reloadSoon(); }
+        @Override public void onTvInputInfoUpdated(android.media.tv.TvInputInfo inputInfo) { reloadSoon(); }
     };
 
     private void reloadSoon() {

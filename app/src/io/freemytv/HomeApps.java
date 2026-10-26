@@ -376,7 +376,10 @@ final class HomeApps {
                 if (info.getParentId() == null) {
                     list.add(info);
                 } else {
-                    devices.put(info.getParentId(), String.valueOf(info.loadLabel(c)).trim());
+                    CharSequence label = info.loadLabel(c);
+                    if (label != null && !label.toString().trim().isEmpty()) {
+                        devices.put(info.getParentId(), label.toString().trim());
+                    }
                 }
             }
         } catch (RuntimeException e) {
@@ -403,10 +406,11 @@ final class HomeApps {
             } catch (RuntimeException ignored) {
             }
             String reported = devices.containsKey(info.getId()) ? devices.get(info.getId()) : "";
+            // Philips can expose a named CEC child while its parent port reports disconnected (e.g. standby).
+            // Use that name independently of signal state; the port still controls dimming and shortcut eligibility.
             String label = custom != null && custom.length() > 0 ? custom.toString()
-                    : !reported.isEmpty() && state == TvInputManager.INPUT_STATE_CONNECTED ? reported : "HDMI " + number;
-            String symbol = state == TvInputManager.INPUT_STATE_CONNECTED || custom != null
-                    ? deviceSymbol(label) : "hdmi";
+                    : !reported.isEmpty() ? reported : "HDMI " + number;
+            String symbol = deviceSymbol(label);
             Item it = shortcut(INPUT, "hdmi" + number, label, symbol);
             it.inputId = info.getId();
             it.number = String.valueOf(number);
