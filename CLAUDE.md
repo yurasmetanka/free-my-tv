@@ -72,30 +72,28 @@ Then, in the code:
 
 For TVs without Google TV or Android TV, use a Google TV streamer on HDMI.
 
-**Uninstalled while in Free My TV mode?** The apps it turned off stay off. Bring them back with
-`adb shell pm enable <package>` (the `DEBLOAT` list and the stock home screen), then
-`adb shell cmd package set-home-activity <stock home activity>` and
-`adb shell settings put secure screensaver_components <stock screensaver>`.
+**Uninstalled while in Free My TV mode?** Reinstall and choose Original. The disabled-package record also lives in
+the TV's global settings. Do not bulk-enable packages: preserve those the owner had already disabled.
 
 ## The code
 
-- Java 8 language level, minSdk 28 (Android 9), targetSdk 33. No Gradle, no libraries: only the Android SDK.
-  Android 9 has no RenderNode (`Recording` wraps it, with a Picture there) and no `cmd role`. On Android 9 to 11
-  (`Ui.LEGACY`) the home screen skips the GPU layers, draws blurred shadows from cached bitmaps (`Shadows`) and
-  rounds images with a shader instead of clipPath: their GPUs (a Mi Box 3's Mali-450) choked on those.
-  Android 11 runs the screensaver as `ScreensaverAlone`, in the main process (its DreamActivity needs the dream in the
-  app's default process, without a home activity); `res/values-v30/bools.xml` picks it, every other version keeps
-  `Screensaver` in `:home`. Keep both in step.
-  To check for newer APIs, compile against `platforms/android-28/android.jar`: only AGSL (`RuntimeShader`, guarded
-  by a try/catch), `BitmapShader.setFilterMode` (guarded) and `Recording.Node` should come up.
+- Java 8 language level, minSdk 26 (Android 8), targetSdk 33. No Gradle, no libraries: only the Android SDK.
+  Android 8 and 9 have no RenderNode (`Recording` wraps it, with a Picture there) and no `cmd role`. On Android 8 to 11
+  (`Ui.LEGACY`) the home screen skips the GPU layers and draws blurred shadows from cached bitmaps (`Shadows`);
+  all versions round images with image-owned shaders instead of clipPath: their GPUs (a Mi Box 3's Mali-450) choked on those.
+  Android 11 to 12L (API 30–32) run the screensaver as `ScreensaverAlone`, in the main process; Android 8–10 and
+  13+ use `Screensaver` in `:home`. The versioned resource booleans and `HomeMode.DREAM` must agree.
+  `ScreensaverAlone` reloads cross-process preferences when it starts. Keep both services in step.
+  To check for newer APIs, compile against `platforms/android-26/android.jar`: only AGSL (`RuntimeShader`, guarded
+  by a try/catch), `BitmapShader.setFilterMode` (guarded), `Recording.Node`, `Ui.Weighted`, and guarded
+  `Activity.setTranslucent` should come up.
 - The home screen is drawn by hand on one Canvas (`HomeView`); the glass and the sky are AGSL shaders (`Shaders`,
-  Android 13+, with a fallback for 9 to 12). Keep it at 60 fps: no allocations in `onDraw`, no work on the UI thread.
+  Android 13+, with a fallback for 8 to 12). Keep it at 60 fps: no allocations in `onDraw`, no work on the UI thread.
 - `HomeMode` runs every switch as a background job (`ModeJob`) in the main process; the UI is in the `:home`
   process. `Watchdog` goes back to the stock home screen after 3 crashes in 5 minutes.
-- On-screen text: `Ui.tr("pt", "en")`, with the Spanish, German and Russian in `Spanish.java`, `German.java` and
-  `Russian.java` (keyed by the English); text built at runtime uses `Ui.tr(pt, en, es)`, and its German and Russian
-  come from those files too (patterns for the parts built at runtime). Add them all. Comments in English, short, only where the why
-  isn't obvious.
+- On-screen text: `Ui.tr("English")`, `Ui.trf("Pattern {name}", "name", value)`, and `Ui.plural` use JSON catalogues
+  in `app/assets/i18n`. Preserve named placeholders and date formats. Run `python3 tools/translate.py --check`.
+  Native-source strings retain their existing PT/ES/DE/RU translations; other catalogues may use English fallback.
 - Settings come from `config.properties` through the generated `out/gen/io/freemytv/Config.java` (never edit that).
   What the person changes on the TV (`Prefs`: Home Settings, Shelf, Remote Buttons) wins over those first values.
 - The remote's app buttons (`RemoteKeys`, `RemoteKeyService`) use each brand's key codes: they run only on TCL and
@@ -123,3 +121,20 @@ See `dev/README.md` for the dedicated Android TV emulator, real fixture publishe
   *Original* can bring it back.
 - Don't change the TV's picture, sound, network or account settings.
 - Keep the way back working: the *Original* mode and the watchdog.
+
+## Android fork updates
+
+See `dev/ANDROID_UPDATES.md` for the Android source port through `90908dc`. Keep this fork Android-only and crypto-free.
+Preserve `Recs` source selection and the shared expanding carousel. `NativeRecs` now adapts PR #42 into the existing Continue Watching tab: app-published progress, episode metadata,
+time left, hold-OK dismissal, and a Home Settings restore action. Dismissals are local; publisher data is never edited.
+Watchlist entries are excluded. The PR’s separate top-content mode and preview-channel discovery were not imported. The private KinoWatch backup
+stays local and is not applied here. Hold OK on a shelf app to reorder; hold OK in All Apps to add/remove it.
+
+Personal photos (`Photos`/`PhotoInbox`), Now Playing, sleep timer/overlay, selectable top buttons, forecast mode,
+Android 8 compatibility, and generic builds are available. Never perform a real launcher switch or test sleep on
+someone's TV from the computer. The launcher-switch safety checks in `HomeMode` must stay in place: setup-app order,
+Wi-Fi ownership, core/factory/input guards, existing disabled-package state, and recoverable restoration.
+
+Build and run `AndroidUpdatesTest` only on a dedicated disposable emulator; it imports/removes test photos and
+schedules/cancels a timer. It does not disable apps or switch the home role. Phone-emulator UI checks do not establish
+Android TV-provider or real-TV behavior. The full provider suite still needs an Android TV image.

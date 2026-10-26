@@ -45,10 +45,18 @@ final class OfflineNetwork {
         JSONArray times = new JSONArray(), temps = new JSONArray(), codes = new JSONArray(), days = new JSONArray();
         long now = System.currentTimeMillis();
         for (int i = 1; i <= 6; i++) { times.put(f.format(new Date(now + i * 3600000L))); temps.put(22 + i); codes.put(1); days.put(1); }
-        return new JSONObject().put("timezone", "UTC")
+        JSONArray dates = new JSONArray(), highs = new JSONArray(), lows = new JSONArray(), dailyCodes = new JSONArray();
+        SimpleDateFormat date = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+        date.setTimeZone(TimeZone.getTimeZone("UTC"));
+        for (int i = 0; i < 6; i++) {
+            dates.put(date.format(new Date(now + i * 86400000L)));
+            highs.put(28 + i); lows.put(17 + i); dailyCodes.put(1);
+        }
+        return new JSONObject().put("timezone", "UTC").put("utc_offset_seconds", 0)
                 .put("current", new JSONObject().put("temperature_2m", 23).put("weather_code", 1).put("is_day", 1))
-                .put("daily", new JSONObject().put("temperature_2m_max", new JSONArray().put(28))
-                    .put("temperature_2m_min", new JSONArray().put(17)).put("sunrise", new JSONArray().put(rise)).put("sunset", new JSONArray().put(set)))
+                .put("daily", new JSONObject().put("time", dates).put("temperature_2m_max", highs)
+                    .put("temperature_2m_min", lows).put("weather_code", dailyCodes)
+                    .put("sunrise", new JSONArray().put(rise)).put("sunset", new JSONArray().put(set)))
                 .put("hourly", new JSONObject().put("time", times).put("temperature_2m", temps).put("weather_code", codes).put("is_day", days)).toString();
     }
 }

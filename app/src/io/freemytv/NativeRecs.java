@@ -151,12 +151,45 @@ final class NativeRecs {
         List<Pick> out = new ArrayList<>();
         if (!canRead(context)) return out;
         Set<String> shelf = shelfPackages();
+        Set<String> hidden = Prefs.watchHidden();
         for (Pick p : picks) {
+            if (p.resume && hidden.contains(hideKey(p))) continue;
             if (shelf.contains(p.pkg) && (kind == null || ("continue".equals(kind) ? p.resume : kind.equals(p.kind)))) {
                 out.add(p);
             }
         }
         return out;
+    }
+
+    // Match the PR's app/title identity so publisher row IDs changing cannot resurrect a dismissal.
+    static String hideKey(Pick p) { return p.pkg + "|" + p.title; }
+    void dismiss(Pick p) {
+        if (!p.resume) return;
+        Set<String> hidden = Prefs.watchHidden();
+        hidden.add(hideKey(p));
+        Prefs.setWatchHidden(hidden);
+        notifyListeners();
+    }
+
+    static float progress(Pick p) {
+        return !p.resume || p.duration <= 0 || p.position < 1000 || p.position >= p.duration
+                ? -1 : (float) ((double) p.position / p.duration);
+    }
+    static String timeLeft(Pick p) {
+        if (progress(p) < 0) return null;
+        long min = Math.max(1, (p.duration - p.position) / 60_000);
+        return min >= 60 ? Ui.trf("{h} h {m} min left", "h", min / 60, "m", min % 60)
+                : Ui.trf("{n} min left", "n", min);
+    }
+    static String episode(String season, String episode, String title) {
+        if (episode != null && !episode.isEmpty()) return season != null && !season.isEmpty()
+                ? Ui.trf("S{season} E{episode}", "season", season, "episode", episode)
+                : Ui.trf("E{episode}", "episode", episode);
+        return title == null || title.isEmpty() ? null : title;
+    }
+    static String metadata(Pick p) {
+        String left = timeLeft(p);
+        return p.app + (left == null ? "" : " · " + left) + (p.episode == null ? "" : " · " + p.episode);
     }
 
     static String key(Pick p) { return p.source + ":" + p.id; }
@@ -228,14 +261,16 @@ final class NativeRecs {
     }
 
     private void read(Uri uri, boolean resume, Map<String, List<Pick>> byApp, List<String> failures) {
-        String[] projection = {"_id", "package_name", "title", "poster_art_uri", "thumbnail_uri", "intent_uri", "type",
-                resume ? "last_engagement_time_utc_millis" : "weight", "browsable"};
+        String[] projection = resume ? new String[] {"_id", "package_name", "title", "poster_art_uri", "thumbnail_uri", "intent_uri", "type",
+                "last_engagement_time_utc_millis", "browsable", "duration_millis", "last_playback_position_millis",
+                "season_display_number", "episode_display_number", "episode_title", "watch_next_type"}
+                : new String[] {"_id", "package_name", "title", "poster_art_uri", "thumbnail_uri", "intent_uri", "type", "weight", "browsable"};
         try (Cursor rows = context.getContentResolver().query(uri, projection, null, null,
                 resume ? "last_engagement_time_utc_millis DESC" : "weight DESC")) {
             if (rows == null) return;
             Map<String, String> labels = new HashMap<>();
             while (rows.moveToNext()) {
-                if (resume && rows.getInt(8) == 0) continue;
+                if (resume && (rows.getInt(8) == 0 || rows.getInt(14) == 3)) continue; // hidden or WATCHLIST
                 String pkg = rows.getString(1);
                 List<Pick> app = byApp.get(pkg);
                 if (app == null || app.size() >= MAX_PER_APP) continue;
@@ -261,7 +296,12 @@ final class NativeRecs {
                 p.backdrop = rows.getString(3);
                 p.thumbnail = rows.getString(4);
                 if (p.backdrop == null || p.backdrop.isEmpty()) p.backdrop = rows.getString(4);
-                p.meta = p.app;
+                if (resume) {
+                    p.duration = rows.getLong(9);
+                    p.position = rows.getLong(10);
+                    if ("tv".equals(p.kind)) p.episode = episode(rows.getString(11), rows.getString(12), rows.getString(13));
+                }
+                p.meta = metadata(p);
                 if (intent(p) != null) app.add(p);
             }
         } catch (RuntimeException e) {
@@ -298,7 +338,10 @@ final class NativeRecs {
     List<Pick> showcase() {
         List<Pick> out = new ArrayList<>();
         Set<String> shelf = shelfPackages();
-        if (canRead(context)) for (Pick p : picks) if (shelf.contains(p.pkg) && readyImage(p) != null) out.add(p);
+        Set<String> hidden = Prefs.watchHidden();
+        if (canRead(context)) for (Pick p : picks) {
+            if (shelf.contains(p.pkg) && !(p.resume && hidden.contains(hideKey(p))) && readyImage(p) != null) out.add(p);
+        }
         return out;
     }
 

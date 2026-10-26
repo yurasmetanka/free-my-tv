@@ -14,10 +14,10 @@ fi
 BT="$SDK/build-tools/$(ls "$SDK/build-tools" | sort -V | tail -1)"
 AJ="$(ls -d "$SDK"/platforms/android-*/android.jar | sort -V | tail -1)"
 rm -rf out/tests && mkdir -p out/tests/classes
-"$BT/aapt2" link -o out/tests/base.apk -I "$AJ" --manifest tests/AndroidManifest.xml --min-sdk-version 28 --target-sdk-version 33
+"$BT/aapt2" link -o out/tests/base.apk -I "$AJ" --manifest tests/AndroidManifest.xml --min-sdk-version 26 --target-sdk-version 33
 "${JAVA_HOME:+$JAVA_HOME/bin/}javac" -encoding UTF-8 -nowarn -source 8 -target 8 -bootclasspath "$AJ:$BT/core-lambda-stubs.jar" \
   -classpath "$AJ:out/classes" -d out/tests/classes $(find tests -maxdepth 1 -name '*.java')
-"$BT/d8" --release --min-api 28 --lib "$AJ" --classpath out/classes --output out/tests $(find out/tests/classes -name '*.class')
+"$BT/d8" --release --min-api 26 --lib "$AJ" --classpath out/classes --output out/tests $(find out/tests/classes -name '*.class')
 (cd out/tests && zip -qj base.apk classes.dex)
 "$BT/zipalign" -f -p 4 out/tests/base.apk out/tests/aligned.apk
 "$BT/apksigner" sign --ks freemytv.keystore --ks-pass pass:freemytv --key-pass pass:freemytv \

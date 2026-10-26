@@ -18,18 +18,19 @@ Open source. Built with Claude Code. One button to undo.
 ## What you get
 
 - **No ads.** No sponsored rows, banners or autoplaying promos. Not one.
-- **Your apps, front and center.** The streaming apps you actually use, on a glass shelf. Pick them and their order right on the TV.
+- **Your apps, front and center.** The streaming apps you actually use, on a scrolling glass shelf. Hold OK on an app, move it with ← →, then OK to save or Back to cancel. Hold OK in All Apps to add or remove an app from the shelf.
 - **Your choice of picks.** On Android TV, choose **From your apps**, **Discover (TMDB)** or **Off** in Home Settings. From your apps shows a scrolling row of recommendations published by your shelf apps, with three visible cards and a larger selected card. Both sources use the same expanding card row. Discover supplies three hourly picks from trending and recent movies and shows on installed streaming services.
-- **Weather, one press away.** The hour-by-hour forecast, sunrise and sunset.
+- **Weather, one press away.** Choose the next hours or five days, with sunrise and sunset.
 - **Light by day, dark by night.** It follows your city's real sunset, the way your phone does.
-- **A screensaver to match.** Full-screen photos of the picks with a big glass clock.
+- **A screensaver to match.** Full-screen photos of the picks or your own photos, with a big glass clock. Optionally press OK to open the title in its app.
+- **Optional extras.** A Now Playing widget, a sleep timer, navigation sounds, and a choice of top buttons.
 - **Fast.** 60 fps, every frame in 16.6 ms, on the TV's own chip. The home screen uses 96 MB of memory instead of 242 MB (−60%).<br><sub>Measured on a 98″ TCL Google TV running Android 14.</sub>
 - **Set up on the TV.** Language, your city, temperature, theme, the weather widget, and the apps on the shelf, in Free My TV's own settings.
 - **Safe.** No root. Nothing is uninstalled. One button brings back the factory home screen.
 
 ## Install
 
-About ten minutes. You need a Google TV or Android TV (Android 9 or newer) and a computer on the same Wi-Fi.
+About ten minutes. You need a Google TV or Android TV (Android 8 or newer) and a computer on the same Wi-Fi.
 
 ### The easy way: Claude Code
 
@@ -79,15 +80,26 @@ The first values come from `config.properties`, created by the first build. Most
 | `tmdb_region` | Your country (two letters): which titles are on which app | `US` |
 | `latitude`, `longitude` | Your city, for the weather and the sunset | New York |
 | `city` | The name on the weather card | `Weather` |
-| `language` | `auto` (follows the TV), `en`, `es`, `pt`, `ru` or `de` | `auto` |
+| `language` | `auto` (follows the TV), or one of the 27 languages in `app/assets/i18n` | `auto` |
 | `temperature` | `C`, `F` or `auto` | `auto` |
+| `theme` | `auto`, `light` or `dark` | `auto` |
+| `screensaver` | Use Free My TV's screensaver; `false` keeps the TV's own | `true` |
+| `hide_animation` | Exclude animation from Discover (TMDB) | `false` |
+| `hide_services` | Streaming services to exclude from Discover, comma separated | empty |
+| `watchmode_key` | Optional title links for Discover (TMDB) | empty |
 | `disable_assistant` | Also turn off Google Assistant | `false` |
 
 Changed something? Run `./build.sh` and install again. Keep `freemytv.keystore`: updates are signed with it.
 
+Home Settings also controls the forecast, navigation sounds, Now Playing, your photos, and watching from the screensaver. **Top Buttons** chooses the corner buttons. **Sleep Timer** requires Free My TV mode and the TV's ADB connection; options the device cannot support explain why they are unavailable.
+
+Send personal photos with `python3 tools/photos.py <TV-IP> photo.jpg Holidays/`. They are imported on the next visit to Home, Settings, or the screensaver. Home Settings → My Photos controls or removes them. When recommendations are off or unavailable, your photos can also provide the home background.
+
+For a build without your private configuration, use `./build.sh --generic`; the TV's time zone supplies the initial city and region. On Android 8–10, disconnect the computer's ADB connection before switching home screens so the TV can accept the app's own debugging prompt.
+
 ### The TMDB key
 
-Android TV defaults to **From your apps**, with no TMDB key needed. Allow TV-listing access when prompted. Only shelf apps that publish Android TV preview or Watch Next entries can contribute; apps without entries show no picks. Cards open the publishing app's content link, and use its logo if artwork is unavailable. Explore, Movies, Shows and Continue Watching have their own tabs. Movie and show categories follow the publishing app’s media type; music and general video clips stay in Explore. Choose **Off** for the clock instead.
+Android TV defaults to **From your apps**, with no TMDB key needed. Allow TV-listing access when prompted. Only shelf apps that publish Android TV preview or Watch Next entries can contribute; apps without entries show no picks. Cards open the publishing app's content link, and use its logo if artwork is unavailable. Explore, Movies, Shows and Continue Watching have their own tabs. Continue Watching cards show a bottom progress line, episode details and time remaining when the publishing app supplies them. Hold OK on a card to open or hide it; Home Settings → Show hidden items restores dismissed titles. Hiding is local to Free My TV. Movie and show categories follow the publishing app’s media type; music and general video clips stay in Explore. Choose **Off** for the clock instead.
 
 To use **Discover (TMDB)**, add a key below, rebuild, then select it in Home Settings. It keeps the existing Explore, Movies and Shows tabs and three picks per hour, matched to installed streaming services in your country. Existing Android installations also start with From your apps until you select another source; their TMDB configuration is kept.
 
@@ -97,7 +109,7 @@ Free, and it takes two minutes: create an account at [themoviedb.org](https://ww
 
 On the TV: *Free My TV* → *Home Screen* → *Original*. The factory home screen, screensaver and every app come back exactly as they were. If the new home screen ever crashes three times in five minutes, it switches back by itself.
 
-To remove it for good, switch to *Original* first, then uninstall *Free My TV* (Settings → Apps).
+To remove it for good, switch to *Original* first, then uninstall *Free My TV* (Settings → Apps). If you already uninstalled it while active, reinstall and choose *Original*: the list of packages it disabled also survives in the TV's settings. Packages disabled before Free My TV remain disabled.
 
 ## What it changes
 
@@ -140,7 +152,7 @@ It's your code, and Claude Code finds its way around it. Try:
 
 - **A plain Android app, no Gradle, no libraries.** [`build.sh`](build.sh) runs aapt2 → javac → d8 → zipalign → apksigner and makes a 2 MB APK.
 - **It uses the TV's own ADB, from inside the TV.** The app connects to `127.0.0.1:5555` with its own key (that's the *Allow USB debugging?* prompt) and runs the same commands you would: `cmd package set-home-activity`, `settings put secure screensaver_components`, `pm disable-user`. Nothing listens to the network.
-- **Drawn by hand on one Canvas**, with Android 13 shaders for the frosted glass and the sky (plain fills on Android 9 to 12, with lighter shadows and no GPU layers on 9 to 11 for their older GPUs).
+- **Drawn by hand on one Canvas**, with Android 13 shaders for the frosted glass and the sky, a bitmap glass fallback on Android 8–12, and lighter shadows on older GPUs.
 - **A safety net.** A watchdog in a separate process brings back the stock home screen after three crashes in five minutes, and a boot check keeps your choice after TV updates.
 - **Data** from TMDB (trending titles, new releases and which app streams what in your country), Open-Meteo (forecast, sunrise and sunset).
 
@@ -159,6 +171,9 @@ It's your code, and Claude Code finds its way around it. Try:
 | [`Prefs.java`](app/src/io/freemytv/Prefs.java) | Settings changed on the TV |
 | [`RemoteKeys.java`](app/src/io/freemytv/RemoteKeys.java) | The TCL remote's app buttons |
 | [`Watchdog.java`](app/src/io/freemytv/Watchdog.java) | The safety net |
+| [`Photos.java`](app/src/io/freemytv/Photos.java) | Personal photo import and backgrounds |
+| [`NowPlaying.java`](app/src/io/freemytv/NowPlaying.java) | Optional media-session widget |
+| [`SleepTimer.java`](app/src/io/freemytv/SleepTimer.java) | Sleep alarm and cancellation |
 
 
 ## Development
@@ -183,9 +198,11 @@ The app and instrumentation APK build without Gradle or third-party libraries. R
 
 Keep `config.properties` and `freemytv.keystore` local. The build recreates `out/`; updates require the same signing key.
 
+Run `python3 tools/translate.py --check` to validate the language catalogues. [Android port notes](dev/ANDROID_UPDATES.md) record the imported fixes, fork adaptations, and validation limits.
+
 ## Privacy
 
-No accounts, no analytics, no tracking. The app talks to TMDB and Open-Meteo (with the coordinates you set). Your settings stay on your computer and your TV.
+No accounts, no analytics, no tracking. Native recommendations load artwork supplied by your shelf apps. Discover uses TMDB and, with an optional key, Watchmode for title links; weather uses Open-Meteo with the coordinates you set. Your settings and personal photos stay on your computer and TV. Now Playing uses Android's notification-listener access only when enabled.
 
 ## Credits
 

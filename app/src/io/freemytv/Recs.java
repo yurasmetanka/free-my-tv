@@ -15,8 +15,11 @@ final class Recs {
         long id;
         String kind, title, backdrop, meta = "", app, pkg;
         boolean detailed;
+        File photo;
         String source, link, thumbnail;
         boolean resume;
+        long duration, position;
+        String episode;
     }
 
     interface Listener { void onRecs(); }
@@ -88,6 +91,7 @@ final class Recs {
         if (!enabled()) return;
         if (fromApps()) apps().refreshIfStale(); else tmdb().refreshIfStale();
     }
+    void dismiss(Pick p) { if (p != null && p.resume) apps().dismiss(p); }
     void invalidate() { if (fromApps()) apps().invalidate(); }
     void prefetchAll() {
         if (!enabled()) return;

@@ -41,7 +41,8 @@ public final class FixtureIntegrationTest extends Instrumentation {
             check(nativeRecs.now().size() == expected, "expected " + expected + " provider picks, got " + nativeRecs.now().size() + ": " + NativeRecs.status(c));
             check(NativeRecs.status(c).optLong("at") >= refreshStarted, "provider refresh completed in this run");
             check(NativeRecs.status(c).optString("error").isEmpty(), "provider queries completed without errors");
-            check(data.weather.temp == 23 && data.weather.hours.size() == 6, "mock forecast parsed");
+            check(data.weather.temp == 23 && data.weather.hours.size() == 6 && data.weather.days.size() == 5,
+                    "mock hourly and five-day forecasts parsed");
             check(OfflineNetwork.weatherRequests.get() > 0, "weather requests used offline transport");
             if (expected > 0) {
                 try (android.database.Cursor rows = c.getContentResolver().query(android.media.tv.TvContract.PreviewPrograms.CONTENT_URI,

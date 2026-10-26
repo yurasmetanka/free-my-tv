@@ -20,6 +20,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.SimpleTimeZone;
 import java.util.TimeZone;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -30,8 +31,10 @@ import java.util.concurrent.Executors;
  * No API key is needed. Location comes from config.properties.
  */
 final class HomeData {
-    private static final String WEATHER_QUERY = "&current=temperature_2m,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset"
-            + "&hourly=temperature_2m,weather_code,is_day&timezone=auto&forecast_days=2";
+    // Both forecasts in one answer, the next 48 hours and today plus 5 days: Home Settings → Forecast switches without
+    // asking again, and offline too.
+    private static final String WEATHER_QUERY = "&current=temperature_2m,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset,weather_code"
+            + "&hourly=temperature_2m,weather_code,is_day&timezone=auto&forecast_days=6&forecast_hours=48";
 
     private static String weatherPlace() {
         return Prefs.latitude() + "," + Prefs.longitude();
@@ -59,6 +62,11 @@ final class HomeData {
         final List<Double> hourTemp = new ArrayList<>();
         final List<Integer> hourCode = new ArrayList<>();
         final List<Boolean> hourDay = new ArrayList<>();
+        // The next 5 days (from tomorrow): noon of each day on the TV's clock, high, low and code.
+        final List<Long> days = new ArrayList<>();
+        final List<Double> dayMax = new ArrayList<>();
+        final List<Double> dayMin = new ArrayList<>();
+        final List<Integer> dayCode = new ArrayList<>();
     }
 
     private static HomeData instance;
@@ -77,6 +85,7 @@ final class HomeData {
     private final List<Listener> listeners = new ArrayList<>();
     private volatile boolean fetchingWeather;
     private volatile long weatherFailedAt;
+    private volatile String weatherFor = "";
 
     private HomeData(Context c) {
         cache = c.getSharedPreferences("homedata", Context.MODE_PRIVATE);
@@ -85,7 +94,9 @@ final class HomeData {
             // The cached forecast is for the city it was fetched for; another city means fetch again.
             if (w != null && weatherPlace().equals(cache.getString("weatherPlace", ""))) {
                 weather = parseWeather(w);
-                weatherAt = cache.getLong("weatherAt", 0);
+                // Fetched with another query (an older version): shown, and fetched again now.
+                weatherAt = WEATHER_QUERY.equals(cache.getString("weatherQuery", "")) ? cache.getLong("weatherAt", 0) : 0;
+                weatherFor = weatherPlace();
             }
         } catch (Exception ignored) {}
     }
@@ -97,14 +108,18 @@ final class HomeData {
     void refreshIfStale() {
         long now = System.currentTimeMillis();
         // A negative age (the TV's clock went back) counts as stale: otherwise the data would freeze.
-        if (!fetchingWeather && (now - weatherAt > WEATHER_EVERY || now < weatherAt) && !failedRecently(weatherFailedAt, now)) {
+        boolean moved = !weatherPlace().equals(weatherFor);
+        if (!fetchingWeather && (moved || now - weatherAt > WEATHER_EVERY || now < weatherAt) && !failedRecently(weatherFailedAt, now)) {
             fetchingWeather = true;
             io.execute(() -> {
                 try {
+                    String place = weatherPlace();
                     String body = get(weatherUrl());
                     weather = parseWeather(body);
                     weatherAt = System.currentTimeMillis();
-                    cache.edit().putString("weather", body).putLong("weatherAt", weatherAt).putString("weatherPlace", weatherPlace()).apply();
+                    weatherFor = place;
+                    cache.edit().putString("weather", body).putLong("weatherAt", weatherAt).putString("weatherPlace", place)
+                            .putString("weatherQuery", WEATHER_QUERY).apply();
                     notifyListeners();
                 } catch (Exception e) {
                     weatherFailedAt = System.currentTimeMillis();
@@ -126,7 +141,10 @@ final class HomeData {
 
     private static Weather parseWeather(String body) throws Exception {
         JSONObject o = new JSONObject(body);
-        TimeZone zone = TimeZone.getTimeZone(o.optString("timezone", TimeZone.getDefault().getID()));
+        // Open-Meteo writes every time at the place's offset of now, even past a DST change (Berlin's sunrise after the
+        // change still reads 07:51 at GMT+2): read them at that offset, as LG and Samsung do, not by the zone's rules.
+        TimeZone zone = o.has("utc_offset_seconds") ? new SimpleTimeZone(o.getInt("utc_offset_seconds") * 1000, "GMT")
+                : TimeZone.getTimeZone(o.optString("timezone", TimeZone.getDefault().getID()));
         Weather w = new Weather();
         JSONObject current = o.getJSONObject("current");
         w.temp = current.getDouble("temperature_2m");
@@ -153,6 +171,18 @@ final class HomeData {
                 w.hourDay.add(days == null || days.optInt(i, 1) == 1);
             }
         }
+        JSONArray dates = daily.getJSONArray("time"), highs = daily.getJSONArray("temperature_2m_max"),
+                lows = daily.getJSONArray("temperature_2m_min"), codes = daily.optJSONArray("weather_code");
+        long now = System.currentTimeMillis();
+        for (int i = 0; codes != null && i < dates.length() && w.days.size() < 5; i++) {
+            String date = dates.getString(i);
+            // Only days that haven't started at the city: today, and past days in a forecast kept offline, are left out.
+            if (localTime(date + "T12:00", zone) - 12 * 3600_000L <= now) continue;
+            w.days.add(localTime(date + "T12:00", TimeZone.getDefault()));   // its noon on the TV's clock: named right anywhere
+            w.dayMax.add(highs.optDouble(i));
+            w.dayMin.add(lows.optDouble(i));
+            w.dayCode.add(codes.optInt(i, -1));
+        }
         return w;
     }
 
@@ -163,7 +193,8 @@ final class HomeData {
     }
 
     static List<String[]> findCity(String name) throws Exception {
-        JSONObject o = new JSONObject(get("https://geocoding-api.open-meteo.com/v1/search?count=10&format=json&language=" + Ui.language
+        String lang = Ui.language.replaceAll("-.*", "");   // Open-Meteo takes the language without the country
+        JSONObject o = new JSONObject(get("https://geocoding-api.open-meteo.com/v1/search?count=10&format=json&language=" + lang
                 + "&name=" + URLEncoder.encode(name.trim(), "UTF-8")));
         JSONArray results = o.optJSONArray("results");
         List<String[]> out = new ArrayList<>();
@@ -207,12 +238,16 @@ final class HomeData {
      * Uses the last weather fetched (it moves ~1 min a day); without data, 6:00 and 18:00.
      */
     boolean isNight(long now) {
-        String theme = Prefs.theme();
+        return isNight(Prefs.theme(), now, weather.sunrise, weather.sunset);
+    }
+
+    /** The same from what it depends on (SleepOverlay gets these in its Intent). */
+    static boolean isNight(String theme, long now, long sunrise, long sunset) {
         if (theme.equals("dark")) return true;
         if (theme.equals("light")) return false;
         long t = Shaders.timeOfDay(now, 0);
-        long rise = Shaders.timeOfDay(weather.sunrise, 6 * 60 * 60_000L);
-        long set = Shaders.timeOfDay(weather.sunset, 18 * 60 * 60_000L);
+        long rise = Shaders.timeOfDay(sunrise, 6 * 60 * 60_000L);
+        long set = Shaders.timeOfDay(sunset, 18 * 60 * 60_000L);
         return t < rise || t >= set;
     }
 
@@ -221,64 +256,21 @@ final class HomeData {
     /** The weather in words, from Open-Meteo's WMO code. */
     static String condition(int code, boolean day) {
         if (code < 0) return "";
-        if (Ui.en) {
-            if (code == 0) return "Clear";
-            if (code == 1) return day ? "Mostly Sunny" : "Mostly Clear";
-            if (code == 2) return "Partly Cloudy";
-            if (code == 3) return "Cloudy";
-            if (code == 45 || code == 48) return "Fog";
-            if (code >= 51 && code <= 57) return "Drizzle";
-            if (code == 65 || code == 67 || code == 82) return "Heavy Rain";
-            if (code >= 71 && code <= 77 || code == 85 || code == 86) return "Snow";
-            if (code >= 95) return "Thunderstorms";
-            return "Rain";
-        }
-        if (Ui.ru) {
-            if (code == 0) return "Ясно";
-            if (code == 1) return "Малооблачно";
-            if (code == 2) return "Переменная облачность";
-            if (code == 3) return "Облачно";
-            if (code == 45 || code == 48) return "Туман";
-            if (code >= 51 && code <= 57) return "Морось";
-            if (code == 65 || code == 67 || code == 82) return "Сильный дождь";
-            if (code >= 71 && code <= 77 || code == 85 || code == 86) return "Снег";
-            if (code >= 95) return "Гроза";
-            return "Дождь";
-        }
-        if (Ui.es) {
-            if (code == 0) return day ? "Despejado" : "Noche despejada";
-            if (code == 1) return "Mayormente despejado";
-            if (code == 2) return "Parcialmente nublado";
-            if (code == 3) return "Nublado";
-            if (code == 45 || code == 48) return "Niebla";
-            if (code >= 51 && code <= 57) return "Llovizna";
-            if (code == 65 || code == 67 || code == 82) return "Lluvia fuerte";
-            if (code >= 71 && code <= 77 || code == 85 || code == 86) return "Nieve";
-            if (code >= 95) return "Tormenta";
-            return "Lluvia";
-        }
-        if (Ui.de) {
-            if (code == 0) return day ? "Sonnig" : "Klar";
-            if (code == 1) return day ? "Überwiegend sonnig" : "Überwiegend klar";
-            if (code == 2) return "Teilweise bewölkt";
-            if (code == 3) return "Bewölkt";
-            if (code == 45 || code == 48) return "Nebel";
-            if (code >= 51 && code <= 57) return "Nieselregen";
-            if (code == 65 || code == 67 || code == 82) return "Starker Regen";
-            if (code >= 71 && code <= 77 || code == 85 || code == 86) return "Schnee";
-            if (code >= 95) return "Gewitter";
-            return "Regen";
-        }
-        if (code == 0) return day ? "Céu limpo" : "Noite limpa";
-        if (code == 1) return "Poucas nuvens";
-        if (code == 2) return "Parcialmente nublado";
-        if (code == 3) return "Nublado";
-        if (code == 45 || code == 48) return "Neblina";
-        if (code >= 51 && code <= 57) return "Garoa";
-        if (code == 65 || code == 67 || code == 82) return "Chuva forte";
-        if (code >= 71 && code <= 77 || code == 85 || code == 86) return "Neve";
-        if (code >= 95) return "Tempestade";
-        return "Chuva";
+        if (code == 0) return day ? Ui.tr("Clear") : Ui.tr("night|Clear");
+        if (code == 1) return day ? Ui.tr("Mostly Sunny") : Ui.tr("Mostly Clear");
+        if (code == 2) return Ui.tr("Partly Cloudy");
+        if (code == 3) return Ui.tr("Cloudy");
+        if (code == 45 || code == 48) return Ui.tr("Fog");
+        if (code >= 51 && code <= 57) return Ui.tr("Drizzle");
+        if (code == 65 || code == 67 || code == 82) return Ui.tr("Heavy Rain");
+        if (code >= 71 && code <= 77 || code == 85 || code == 86) return Ui.tr("Snow");
+        if (code >= 95) return Ui.tr("Thunderstorms");
+        return Ui.tr("Rain");
+    }
+
+    /** "H:24°  L:15°" (in Portuguese, "Máx. 24°  Mín. 15°"), with the given space between the two. */
+    static String highLow(Weather wx, String space) {
+        return Ui.trf("H:{max}", "max", degrees(wx.max)) + space + Ui.trf("L:{min}", "min", degrees(wx.min));
     }
 
     /** Celsius or Fahrenheit (config.properties "temperature": C, F, or auto = Fahrenheit in the US). */
@@ -295,8 +287,21 @@ final class HomeData {
     }
 
     static String hour(long at) {
-        return Ui.once("hour", at, () -> Ui.en ? new SimpleDateFormat("h a", Locale.US).format(new java.util.Date(at))
-                : new SimpleDateFormat(Ui.es || Ui.ru ? "HH:mm" : Ui.de ? "HH 'Uhr'" : "HH'h'", Ui.locale()).format(new java.util.Date(at)));
+        return Ui.once(Prefs.clock24() ? "hour24" : "hour", at, () -> Ui.datePattern("format|h a").format(at));
+    }
+
+    /** "Seg", "Mon", "Lun", "Mo", "Пн": the short day of the week, capitalized and without the abbreviation's dot. */
+    static String weekday(long at) {
+        return Ui.once("weekday", at, () -> {
+            String s = Ui.datePattern("format|EEE").format(at);
+            if (s.endsWith(".")) s = s.substring(0, s.length() - 1);
+            return s.isEmpty() ? s : s.substring(0, 1).toUpperCase(Ui.locale()) + s.substring(1);
+        });
+    }
+
+    /** "Sunday", "domingo", "Sonntag": a day's full name, for TalkBack. */
+    static String weekdayName(long at) {
+        return Ui.once("weekdayName", at, () -> new SimpleDateFormat("EEEE", Ui.locale()).format(new java.util.Date(at)));
     }
 
 }

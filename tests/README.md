@@ -17,3 +17,11 @@ Run with TV-listing permission granted to exercise the filters, and with it deni
 Also check on the TV: switching sources and restarting, all four app-feed tabs and all three Discover tabs, scrolling to both ends, selected-card expansion, empty feeds, artwork and app-logo placeholders, content links, and the screensaver.
 
 For real provider integration and an interactive offline UI environment, see [dev/README.md](../dev/README.md). `FixtureIntegrationTest` and `OfflineNetwork` are compiled only into the test APK. Their runner changes fixture settings on an emulator and is not intended for a physical TV.
+
+`AndroidUpdatesTest` runs only on a disposable emulator. It covers launcher-switch package guards/order, the screensaver component, weather DST and null daily values, sleep alarm scheduling/cancellation, shelf scrolling and reorder/cancel, the shared native carousel, source transitions, top-button removal, settings scrolling, rounded artwork rendering, personal photo import, and language loading. It does not switch the emulator's launcher or disable packages. It creates and removes photos in the disposable app's storage; do not use it on an emulator with personal app data.
+
+```sh
+adb -s emulator-5556 shell am instrument -w -r io.freemytv.tests/io.freemytv.AndroidUpdatesTest
+```
+
+The UI checks can run on a phone emulator image using injected cards. The full `FixtureIntegrationTest` suite still requires an Android TV image with the TV provider and TV-listing permission. Neither compiled tests nor injected-card checks establish actual streaming-app publication or firmware behavior.

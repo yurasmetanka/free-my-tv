@@ -25,6 +25,7 @@ cleanup() {
   "${ADB[@]}" shell pm grant io.freemytv android.permission.READ_TV_LISTINGS >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
+run_check android-updates io.freemytv.tests/io.freemytv.AndroidUpdatesTest
 for permission in grant revoke; do
   "${ADB[@]}" shell pm "$permission" io.freemytv android.permission.READ_TV_LISTINGS
   run_check "recommendations-$permission" io.freemytv.tests/io.freemytv.RecommendationsTest
@@ -60,7 +61,7 @@ python3 - "$RESULTS" <<'PYREPORT'
 from pathlib import Path
 import hashlib, json, subprocess, sys
 root=Path(sys.argv[1])
-names=['recommendations-grant','recommendations-revoke','provider-populated','provider-empty','provider-denied']
+names=['android-updates','recommendations-grant','recommendations-revoke','provider-populated','provider-empty','provider-denied']
 checks={}
 for name in names:
     body=(root/(name+'.txt')).read_text()

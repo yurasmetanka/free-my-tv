@@ -3,6 +3,7 @@ package io.freemytv;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -15,18 +16,21 @@ import android.widget.TextView;
  * back to the TV's original one.
  */
 public class HomeActivity extends Activity {
+    /** Opens All Apps (a remote's All Apps button, RemoteKeys). */
+    static final String EXTRA_ALL_APPS = "io.freemytv.ALL_APPS";
     private HomeView home;
     private int prefsVersion = Prefs.version;   // settings changed while we were away: start over
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Watchdog.install(this);
+        SleepTimer.listen(this);
+        SleepTimer.check(this);
         if (Watchdog.crashedTooOften(this)) {
             // Don't try to draw again: only show a notice while the main process restores the original home screen.
             HomeMode.requestRevertHome(this);
             TextView t = new TextView(this);
-            t.setText(Ui.tr("O Início do Free My TV teve um problema.\nVoltando para o Início original da TV…",
-                    "Free My TV's home screen ran into a problem.\nGoing back to the TV's original home screen…"));
+            t.setText(Ui.tr("Free My TV's home screen ran into a problem.\nGoing back to the TV's original home screen…"));
             t.setTextColor(Color.WHITE);
             t.setTextSize(TypedValue.COMPLEX_UNIT_SP, 22);
             t.setGravity(Gravity.CENTER);
@@ -38,6 +42,7 @@ public class HomeActivity extends Activity {
         home = new HomeView(this);
         setContentView(home);
         getWindow().setBackgroundDrawable(null);
+        if (getIntent().getBooleanExtra(EXTRA_ALL_APPS, false)) home.showAllApps();
         if (Recs.fromApps() && checkSelfPermission("android.permission.READ_TV_LISTINGS") != android.content.pm.PackageManager.PERMISSION_GRANTED
                 && !getPreferences(MODE_PRIVATE).getBoolean("askedForTvListings", false)) {
             getPreferences(MODE_PRIVATE).edit().putBoolean("askedForTvListings", true).apply();
@@ -52,6 +57,10 @@ public class HomeActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
+        // TCL's Android 11 records the home activity as translucent (occludesParent=false) whatever its theme says:
+        // Android then keeps the app just left visible, and home tasks are layered under all others, so that app stays
+        // on screen over ours. Opaque again on every resume (setTranslucent is public from Android 11).
+        if (RemoteKeys.TCL && Build.VERSION.SDK_INT >= 30) setTranslucent(false);
         if (prefsVersion != Prefs.version) {
             prefsVersion = Prefs.version;
             HomeData.get(this).settingsChanged();
@@ -69,7 +78,9 @@ public class HomeActivity extends Activity {
     /** Home button pressed on the home screen: back to the entry state (focus on the first app, sheet closed). */
     @Override protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
-        if (home != null) home.reset(true);
+        if (home == null) return;
+        if (intent.getBooleanExtra(EXTRA_ALL_APPS, false)) home.showAllApps();
+        else home.reset(true);
     }
 
     @Override protected void onDestroy() {
